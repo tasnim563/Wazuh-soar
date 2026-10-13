@@ -1,4 +1,4 @@
-# 🚀 SOAR-Flow
+ 🚀 SOAR-Flow
 
 Automated incident response by integrating **Shuffle SOAR**, **Wazuh SIEM** and **TheHive**.
 
@@ -6,7 +6,7 @@ Automated incident response by integrating **Shuffle SOAR**, **Wazuh SIEM** and 
 
 ---
 
-## 📑 Table of Contents
+📑 Table of Contents
 
 - [Project Description](#-project-description)
 - [Architecture](#-architecture)
@@ -22,8 +22,7 @@ Automated incident response by integrating **Shuffle SOAR**, **Wazuh SIEM** and 
 - [Future Enhancements](#-future-enhancements)
 
 ---
-
-## 📌 Project Description
+ 📌 Project Description
 
 This project demonstrates how to integrate **Shuffle SOAR** with **Wazuh SIEM** and **TheHive** to automate incident response.
 
@@ -37,7 +36,7 @@ By implementing this SOAR workflow, you can automate security operations, reduce
 
 ---
 
-## 🏗️ Architecture
+🏗️ Architecture
 
 ```
 ┌──────────────┐  alert   ┌──────────────┐
@@ -66,9 +65,9 @@ By implementing this SOAR workflow, you can automate security operations, reduce
 
 ---
 
-## 🛠️ Installation & Setup
+ 🛠️ Installation & Setup
 
-### VM-1: Wazuh & TheHive
+ VM-1: Wazuh & TheHive
 
 **Specifications**
 
@@ -78,7 +77,7 @@ By implementing this SOAR workflow, you can automate security operations, reduce
 | Disk | 60 GB+ |
 | OS | Ubuntu 24.04 LTS |
 
-#### 1️⃣ Install Wazuh SIEM
+ 1️⃣ Install Wazuh SIEM
 
 Follow the official [Wazuh Installation Guide](https://documentation.wazuh.com/current/installation-guide/index.html).
 
@@ -162,7 +161,6 @@ Follow the official [TheHive Installation Guide](https://docs.strangebee.com/the
    - **Login:** `admin@thehive.local`
    - **Password:** `secret` ⚠️ *change this immediately after first login*
 
-![TheHive](images/thehive.png)
 
 ---
 
@@ -198,11 +196,10 @@ sudo docker-compose up -d
 
 Access the Shuffle web UI at `http://<YOUR-IP>:3001`.
 
-![Shuffle](images/shuffle.png)
 
 ---
 
-### 4️⃣ Create a Discord Webhook
+ 4️⃣ Create a Discord Webhook
 
 1. Go to your Discord server → **Settings** → **Integrations** → **Webhooks**
 2. Click **New Webhook** and name it `SOC Alerts`
@@ -210,9 +207,9 @@ Access the Shuffle web UI at `http://<YOUR-IP>:3001`.
 
 ---
 
-## ⚙️ Configuration for TheHive
+ ⚙️ Configuration for TheHive
 
-### Configure Cassandra
+ Configure Cassandra
 
 1. Edit the config file:
 
@@ -238,7 +235,7 @@ Access the Shuffle web UI at `http://<YOUR-IP>:3001`.
    sudo systemctl start cassandra.service
    ```
 
-### Configure Elasticsearch
+ Configure Elasticsearch
 
 1. Edit the config file:
 
@@ -265,7 +262,7 @@ Access the Shuffle web UI at `http://<YOUR-IP>:3001`.
    sudo systemctl status elasticsearch
    ```
 
-### Configure TheHive
+Configure TheHive
 
 1. Ensure proper ownership:
 
@@ -313,9 +310,9 @@ Access the Shuffle web UI at `http://<YOUR-IP>:3001`.
 
 ---
 
-## 🔄 Workflow - Automating Incident Response
+ 🔄 Workflow - Automating Incident Response
 
-### Overview
+ Overview
 
 1. **Receive** alerts from Wazuh SIEM when suspicious activity is detected
 2. **Enrich** the alert using the VirusTotal & AbuseIPDB APIs
@@ -323,7 +320,7 @@ Access the Shuffle web UI at `http://<YOUR-IP>:3001`.
 4. **Notify** Discord with the alert details
 5. **(Optional)** Perform auto-mitigation (e.g., block malicious IPs)
 
-### Shuffle Workflow Steps
+Shuffle Workflow Steps
 
 **🔹 Step 1: Add Wazuh alert as trigger**
 - In Shuffle, create a new workflow and add a **Webhook** trigger.
@@ -344,9 +341,9 @@ Access the Shuffle web UI at `http://<YOUR-IP>:3001`.
 
 ---
 
-## 🚀 Running the Workflow
+ 🚀 Running the Workflow
 
-### Step 1: Configure Wazuh to send alerts to Shuffle
+ Step 1: Configure Wazuh to send alerts to Shuffle
 
 Add the following block to `/var/ossec/etc/ossec.conf` on the Wazuh manager:
 
@@ -369,7 +366,7 @@ sudo systemctl restart wazuh-manager
 
 Generate an API key in TheHive and add it to Shuffle's HTTP Request node.
 
-### Step 3: Configure the Discord webhook in Shuffle
+ Step 3: Configure the Discord webhook in Shuffle
 
 Use the Discord webhook URL in the Shuffle HTTP Request node. Example payload:
 
@@ -387,7 +384,7 @@ Use the Discord webhook URL in the Shuffle HTTP Request node. Example payload:
 
 ---
 
-## 📌 Example Output
+ 📌 Example Output
 
 **✅ TheHive incident created**
 
@@ -399,7 +396,7 @@ Use the Discord webhook URL in the Shuffle HTTP Request node. Example payload:
 ```
 
 
-## 🎯 Future Enhancements
+ 🎯 Future Enhancements
 
 - 🔹 Add auto-mitigation (e.g., blocking attacker IPs via firewall rules)
 - 🔹 Integrate more threat intelligence feeds (e.g., MISP, Shodan API)
@@ -407,7 +404,7 @@ Use the Discord webhook URL in the Shuffle HTTP Request node. Example payload:
 
 ---
 
-## ⚠️ Security Notes
+ ⚠️ Security Notes
 
 - Never commit API keys, webhook URLs, or credentials to this repository.
 - Change all default passwords (TheHive `admin@thehive.local` / `secret`) before exposing anything publicly.
