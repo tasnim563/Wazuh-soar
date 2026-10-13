@@ -1,0 +1,414 @@
+# 🚀 SOAR-Flow
+
+Automated incident response by integrating **Shuffle SOAR**, **Wazuh SIEM** and **TheHive**.
+
+
+
+---
+
+## 📑 Table of Contents
+
+- [Project Description](#-project-description)
+- [Architecture](#-architecture)
+- [Tools Used](#-tools-used)
+- [Installation & Setup](#️-installation--setup)
+  - [VM-1: Wazuh & TheHive](#vm-1-wazuh--thehive)
+  - [VM-2: Shuffle](#vm-2-shuffle)
+  - [Discord Webhook](#4️⃣-create-a-discord-webhook)
+- [TheHive Configuration](#-configuration-for-thehive)
+- [Workflow](#-workflow---automating-incident-response)
+- [Running the Workflow](#-running-the-workflow)
+- [Example Output](#-example-output)
+- [Future Enhancements](#-future-enhancements)
+
+---
+
+## 📌 Project Description
+
+This project demonstrates how to integrate **Shuffle SOAR** with **Wazuh SIEM** and **TheHive** to automate incident response.
+
+- ✅ Receive security alerts from Wazuh
+- ✅ Enrich alerts with external threat intelligence (VirusTotal, AbuseIPDB)
+- ✅ Create an incident in TheHive for case management
+- ✅ Send notifications to a Discord channel
+- ✅ *(Bonus)* Auto-mitigate threats (e.g., block malicious IPs)
+
+By implementing this SOAR workflow, you can automate security operations, reduce response time, and improve efficiency in a SOC environment.
+
+---
+
+## 🏗️ Architecture
+
+```
+┌──────────────┐  alert   ┌──────────────┐
+│  Wazuh SIEM  │ ───────▶ │   Shuffle    │
+│   (VM-1)     │ webhook  │   (VM-2)     │
+└──────────────┘          └──────┬───────┘
+                                 │
+         ┌───────────────┬───────┴────────┬────────────────┐
+         ▼               ▼                ▼                ▼
+   VirusTotal       AbuseIPDB         TheHive          Discord
+  (enrichment)     (enrichment)    (case creation)   (notification)
+```
+
+---
+
+## 🔧 Tools Used
+
+| Tool | Description |
+|------|-------------|
+| **Wazuh SIEM** | Security Information & Event Management (SIEM) solution for threat detection |
+| **TheHive** | Open-source Security Incident Response Platform (SIRP) |
+| **Shuffle** | Open-source Security Orchestration, Automation, and Response (SOAR) platform |
+| **VirusTotal API** | Malware and URL reputation checks |
+| **AbuseIPDB API** | Checks whether an IP address is malicious |
+| **Discord Webhook** | Sends alerts to a Discord channel for real-time monitoring |
+
+---
+
+## 🛠️ Installation & Setup
+
+### VM-1: Wazuh & TheHive
+
+**Specifications**
+
+| Resource | Minimum |
+|----------|---------|
+| RAM | 12 GB+ |
+| Disk | 60 GB+ |
+| OS | Ubuntu 24.04 LTS |
+
+#### 1️⃣ Install Wazuh SIEM
+
+Follow the official [Wazuh Installation Guide](https://documentation.wazuh.com/current/installation-guide/index.html).
+
+1. Update and upgrade:
+
+   ```bash
+   sudo apt-get update && sudo apt-get upgrade -y
+   ```
+
+2. Install Wazuh 4.10:
+
+   ```bash
+   curl -sO https://packages.wazuh.com/4.10/wazuh-install.sh && sudo bash ./wazuh-install.sh -a
+   ```
+
+3. Extract the Wazuh credentials:
+
+   ```bash
+   sudo tar -xvf wazuh-install-files.tar
+   ```
+
+   Wazuh Dashboard credentials:
+   - **User:** `admin`
+   - **Password:** *(found in the extracted files)*
+
+4. Access the dashboard at `https://<Public IP of Wazuh>`
+
+![Wazuh](images/wazuh.png)
+
+#### 2️⃣ Install TheHive
+
+Follow the official [TheHive Installation Guide](https://docs.strangebee.com/thehive/installation/).
+
+1. Install dependencies:
+
+   ```bash
+   sudo apt install wget gnupg apt-transport-https git ca-certificates ca-certificates-java curl software-properties-common python3-pip lsb-release
+   ```
+
+2. Install Java:
+
+   ```bash
+   wget -qO- https://apt.corretto.aws/corretto.key | sudo gpg --dearmor -o /usr/share/keyrings/corretto.gpg
+   echo "deb [signed-by=/usr/share/keyrings/corretto.gpg] https://apt.corretto.aws stable main" | sudo tee -a /etc/apt/sources.list.d/corretto.sources.list
+   sudo apt update
+   sudo apt install java-common java-11-amazon-corretto-jdk
+   echo JAVA_HOME="/usr/lib/jvm/java-11-amazon-corretto" | sudo tee -a /etc/environment
+   export JAVA_HOME="/usr/lib/jvm/java-11-amazon-corretto"
+   ```
+
+3. Install Cassandra:
+
+   ```bash
+   wget -qO - https://downloads.apache.org/cassandra/KEYS | sudo gpg --dearmor -o /usr/share/keyrings/cassandra-archive.gpg
+   echo "deb [signed-by=/usr/share/keyrings/cassandra-archive.gpg] https://debian.cassandra.apache.org 40x main" | sudo tee -a /etc/apt/sources.list.d/cassandra.sources.list
+   sudo apt update
+   sudo apt install cassandra
+   ```
+
+4. Install Elasticsearch:
+
+   ```bash
+   wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo gpg --dearmor -o /usr/share/keyrings/elasticsearch-keyring.gpg
+   sudo apt-get install apt-transport-https
+   echo "deb [signed-by=/usr/share/keyrings/elasticsearch-keyring.gpg] https://artifacts.elastic.co/packages/7.x/apt stable main" | sudo tee /etc/apt/sources.list.d/elastic-7.x.list
+   sudo apt update
+   sudo apt install elasticsearch
+   ```
+
+5. Install TheHive:
+
+   ```bash
+   wget -O- https://archives.strangebee.com/keys/strangebee.gpg | sudo gpg --dearmor -o /usr/share/keyrings/strangebee-archive-keyring.gpg
+   echo 'deb [signed-by=/usr/share/keyrings/strangebee-archive-keyring.gpg] https://deb.strangebee.com thehive-5.2 main' | sudo tee -a /etc/apt/sources.list.d/strangebee.list
+   sudo apt-get update
+   sudo apt-get install -y thehive
+   ```
+
+6. Default TheHive credentials:
+   - **Port:** `9000`
+   - **Login:** `admin@thehive.local`
+   - **Password:** `secret` ⚠️ *change this immediately after first login*
+
+![TheHive](images/thehive.png)
+
+---
+
+### VM-2: Shuffle
+
+**Specifications**
+
+| Resource | Minimum |
+|----------|---------|
+| RAM | 4 GB+ |
+| Disk | 40 GB+ |
+| OS | Ubuntu 24.04 LTS |
+
+#### 3️⃣ Install Shuffle SOAR
+
+See the [Shuffle Installation Guide](https://shuffler.io/docs/configuration#installation).
+
+```bash
+# Install Docker if not already installed
+sudo apt update && sudo apt install -y docker.io docker-compose
+
+# Enable and start Docker
+sudo systemctl enable docker
+sudo systemctl start docker
+
+# Clone the Shuffle repository
+git clone https://github.com/Shuffle/Shuffle.git
+cd Shuffle
+
+# Build and run Shuffle with Docker Compose
+sudo docker-compose up -d
+```
+
+Access the Shuffle web UI at `http://<YOUR-IP>:3001`.
+
+![Shuffle](images/shuffle.png)
+
+---
+
+### 4️⃣ Create a Discord Webhook
+
+1. Go to your Discord server → **Settings** → **Integrations** → **Webhooks**
+2. Click **New Webhook** and name it `SOC Alerts`
+3. Copy the **Webhook URL** (you will need it later)
+
+---
+
+## ⚙️ Configuration for TheHive
+
+### Configure Cassandra
+
+1. Edit the config file:
+
+   ```bash
+   sudo nano /etc/cassandra/cassandra.yaml
+   ```
+
+2. Update the following values:
+
+   ```yaml
+   cluster_name: 'SOAR-Flow'
+   listen_address: <Public IP of TheHive>
+   rpc_address: <Public IP of TheHive>
+   # under seed_provider:
+   - seeds: "<Public IP of TheHive>:7000"
+   ```
+
+3. Stop Cassandra, remove old data, and restart:
+
+   ```bash
+   sudo systemctl stop cassandra.service
+   sudo rm -rf /var/lib/cassandra/*
+   sudo systemctl start cassandra.service
+   ```
+
+### Configure Elasticsearch
+
+1. Edit the config file:
+
+   ```bash
+   sudo nano /etc/elasticsearch/elasticsearch.yml
+   ```
+
+2. Update the cluster name and host:
+
+   ```yaml
+   cluster.name: thehive
+   node.name: node-1
+   network.host: <Public IP of your TheHive instance>
+   http.port: 9200
+   discovery.seed_hosts: ["127.0.0.1"]
+   cluster.initial_master_nodes: ["node-1"]
+   ```
+
+3. Start and enable the service:
+
+   ```bash
+   sudo systemctl start elasticsearch
+   sudo systemctl enable elasticsearch
+   sudo systemctl status elasticsearch
+   ```
+
+### Configure TheHive
+
+1. Ensure proper ownership:
+
+   ```bash
+   ls -la /opt/thp
+   sudo chown -R thehive:thehive /opt/thp
+   ```
+
+2. Edit the configuration file:
+
+   ```bash
+   sudo nano /etc/thehive/application.conf
+   ```
+
+3. Update the database and index configuration:
+
+   ```hocon
+   db.janusgraph {
+     storage {
+       backend = cql
+       hostname = ["<Public IP of TheHive>"]
+       cql {
+         cluster-name = SOAR-Flow
+         keyspace = thehive
+       }
+     }
+   }
+
+   index.search {
+     backend = elasticsearch
+     hostname = ["<Public IP of TheHive>"]
+     index-name = thehive
+   }
+
+   application.baseUrl = "http://<Public IP of TheHive>:9000"
+   ```
+
+4. Start and enable TheHive:
+
+   ```bash
+   sudo systemctl start thehive
+   sudo systemctl enable thehive
+   sudo systemctl status thehive
+   ```
+
+---
+
+## 🔄 Workflow - Automating Incident Response
+
+### Overview
+
+1. **Receive** alerts from Wazuh SIEM when suspicious activity is detected
+2. **Enrich** the alert using the VirusTotal & AbuseIPDB APIs
+3. **Create** an incident in TheHive for case tracking
+4. **Notify** Discord with the alert details
+5. **(Optional)** Perform auto-mitigation (e.g., block malicious IPs)
+
+### Shuffle Workflow Steps
+
+**🔹 Step 1: Add Wazuh alert as trigger**
+- In Shuffle, create a new workflow and add a **Webhook** trigger.
+- Configure Wazuh to send alerts to that webhook.
+
+**🔹 Step 2: Enrich data with VirusTotal & AbuseIPDB**
+- Add an **HTTP Request** node to check IPs/hashes using the VirusTotal API.
+- Add another **HTTP Request** node to query AbuseIPDB for malicious IPs.
+
+**🔹 Step 3: Create an incident in TheHive**
+- Use the TheHive API to create a new case containing the alert details.
+
+**🔹 Step 4: Send alert to Discord**
+- Use the Discord webhook to send a formatted message to a SOC channel.
+
+**🔹 Step 5: (Optional) Auto-mitigation**
+- If the IP is high risk, trigger a firewall rule to block the attacker.
+
+---
+
+## 🚀 Running the Workflow
+
+### Step 1: Configure Wazuh to send alerts to Shuffle
+
+Add the following block to `/var/ossec/etc/ossec.conf` on the Wazuh manager:
+
+```xml
+<integration>
+  <name>shuffle</name>
+  <hook_url>http://<shuffle-ip>:3001/api/v1/hooks/<webhook-id></hook_url>
+  <level>3</level>
+  <alert_format>json</alert_format>
+</integration>
+```
+
+Restart Wazuh to apply the change:
+
+```bash
+sudo systemctl restart wazuh-manager
+```
+
+### Step 2: Configure TheHive API key
+
+Generate an API key in TheHive and add it to Shuffle's HTTP Request node.
+
+### Step 3: Configure the Discord webhook in Shuffle
+
+Use the Discord webhook URL in the Shuffle HTTP Request node. Example payload:
+
+```json
+{
+  "content": "**🚨 New Security Alert 🚨**\n\nIP: 192.168.1.100\nSeverity: High\nSource: Wazuh SIEM"
+}
+```
+
+### Step 4: Test the workflow
+
+1. Trigger an alert in Wazuh (e.g., failed SSH logins).
+2. Verify the incident is created in TheHive.
+3. Check that the alert is sent to Discord.
+
+---
+
+## 📌 Example Output
+
+**✅ TheHive incident created**
+
+```
+[INFO] New Incident Created in TheHive:
+- Title: Suspicious SSH Login Attempts
+- Severity: High
+- Source: Wazuh SIEM
+```
+
+
+## 🎯 Future Enhancements
+
+- 🔹 Add auto-mitigation (e.g., blocking attacker IPs via firewall rules)
+- 🔹 Integrate more threat intelligence feeds (e.g., MISP, Shodan API)
+- 🔹 Expand automation to handle different types of incidents
+
+---
+
+## ⚠️ Security Notes
+
+- Never commit API keys, webhook URLs, or credentials to this repository.
+- Change all default passwords (TheHive `admin@thehive.local` / `secret`) before exposing anything publicly.
+- Restrict access to the Wazuh, TheHive and Shuffle ports with a firewall.
